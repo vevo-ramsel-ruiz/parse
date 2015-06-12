@@ -5,6 +5,8 @@ var async = require("cloud/async.js");
 // ID of the Google Spreadsheet
 var spreadsheetId = "1dLL5tuds0n_Sg_DkEocien0FwIig15hNAwuu_f30amA";
 
+var MAX_CATEGORIES = 10;
+
 // List of country codes and their Google Sheets Ids
 var individualSheetIds = {
 	"us" : "od6",
@@ -30,22 +32,18 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
   	// Array to store new objects
 	var playlistsToSave = [];
 
-	// // Get urls
-	// var urls = urlsForSpreadsheet();
-	
-	// console.log('urls = ' + urls);
 
 
+	// 1. Make HTTPRequest to get JSON
+	// 2. Make Parse object from JSON
+	// 3. When all HTTPRequest async operations are complete and objects created, save objects
 	async.each(individualSheetIds,
-	  // 2nd param is the function that each item is passed to
+
 	 function(sheetId, callback){
-
-
 
 	 	var url = urlForSheet(sheetId);
 
-	    // Call an asynchronous function, often a save() to DB
-	    // Cloud function - http request
+	    // Async cloud function - http request
 		Parse.Cloud.httpRequest({
 		  url: url
 		}).then(function(httpResponse) {
@@ -58,21 +56,25 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 
 		  	var each = json.feed.entry[i];
 	    
-	    	// TODO: This needs error handling - if "gsx$" doesn't exist will crash
+	    	// TODO: This needs error handling - if "gsx$.." doesn't exist will crash
 	      	var name = each["gsx$name"]["$t"];
 	      	var playlistid = each["gsx$playlistid"]["$t"];
 	      	var description = each["gsx$description"]["$t"];
 	      	var imageurl = each["gsx$imageurl"]["$t"];
-	      	var categories = each["gsx$categories"]["$t"].split(','); // json returns a string from Sheet - split on commas
 
 
-	      	// -- Logs
-	        console.log('name = ' + name);
-	        console.log('playlistid = ' + playlistid);
-	 		console.log('description = ' + description);
-	        console.log('imageurl = ' + imageurl);
-			// console.log('categories = ' + categories);
-			// console.log('categories[1] = ' + categories[1]);
+	      	// -- categories has multiple entries, combine into array
+	      	var categories = [];
+	      	for (var j = 0; j < MAX_CATEGORIES; j++) { 
+
+	      		var key = "gsx$categories" + j;
+	      		
+	      		// -- check -- if key exists and value has length
+	      		if (each[key] &&
+	      			each[key]["$t"].length > 0) {
+	      			categories.push(each[key]["$t"]);
+	      		};
+	      	}
 
 
 			// Create Parse objects 
@@ -82,15 +84,11 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 			playlist.set("playlistId", playlistid);
 			playlist.set("description", description);
 			playlist.set("imageUrl", imageurl);
-			playlist.set("categories", categories);
 			playlist.add("territories", getKey(individualSheetIds, sheetId)); // Get the key from the sheetId
+			playlist.set("categories", categories);
 
 
 
-
-			// -- Logs
-			console.log(playlist.playlistid);
-			console.log(playlist.get("playlistid"));
 			// Add to caching array
 			playlistsToSave.push(playlist);
 	      }
@@ -106,13 +104,11 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 	      // status.error("Scheduled messages error: " + error);
   	      status.error("Scheduled messages error");
 		});
-
-
 	  },
-	  // 3rd param is the function to call when everything's done
+
 	  function(err){
 	   
-	   	// Parse - Save objects
+	   	// Async parse operations - Save objects
 		Parse.Object.saveAll(playlistsToSave, {
 	    success: function(saveList) {
 	        status.success("Objects created successfully.");
@@ -128,12 +124,18 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 });
 
 
+/**
+*
+*/
 function urlForSheet(sheetId) {
 
 	return "https://spreadsheets.google.com/feeds/list/" + spreadsheetId + "/" + sheetId + "/public/values?alt=json"; // Make sure it is public or set to Anyone with link can view 
 }
 
 
+/**
+*
+*/
 function getKey(object, value) {
   for(var key in object){
     if(object[key] == value){
