@@ -1,10 +1,19 @@
 
-// Modules
-var async = require("cloud/async.js");
 
+/** 
+ * Modules
+ */
+ var async = require("cloud/async.js");
+
+
+
+/** 
+ * Constants
+ */
 // ID of the Google Spreadsheet
 var spreadsheetId = "1dLL5tuds0n_Sg_DkEocien0FwIig15hNAwuu_f30amA";
 
+// ID of the Google Spreadsheet
 var MAX_CATEGORIES = 10;
 
 // List of country codes and their Google Sheets Ids
@@ -20,8 +29,9 @@ var individualSheetIds = {
 }
 
 
+
 /** 
- *
+ * Parse Cloud Job - importPlaylists
  */
 Parse.Cloud.job("importPlaylists", function(request, status) {
 
@@ -54,19 +64,47 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 		  // Create playlist objects
 		  for (var i = 0; i < json.feed.entry.length; i++) {
 
+
+		  	// FIRST - Parse JSON
 		  	var each = json.feed.entry[i];
 	    
-	    	// TODO: This needs error handling - if "gsx$.." doesn't exist will crash
-	      	var name = each["gsx$name"]["$t"];
-	      	var playlistid = each["gsx$playlistid"]["$t"];
-	      	var description = each["gsx$description"]["$t"];
-	      	var imageurl = each["gsx$imageurl"]["$t"];
+	    	// -- name
+	    	var name = "";
+    		if (each["gsx$name"] &&
+      			each["gsx$name"]["$t"].length > 0) {
+				name = each["gsx$name"]["$t"];      		
+			};
+
+			// -- playlistid
+	    	var playlistid = "";
+    		if (each["gsx$playlistid"] &&
+      			each["gsx$playlistid"]["$t"].length > 0) {
+				playlistid = each["gsx$playlistid"]["$t"];      		
+			};
+
+			// -- description
+	    	var description = "";
+    		if (each["gsx$description"] &&
+      			each["gsx$description"]["$t"].length > 0) {
+				description = each["gsx$description"]["$t"];      		
+			};
+
+			// -- imageurl
+	    	var imageurl = "";
+    		if (each["gsx$imageurl"] &&
+      			each["gsx$imageurl"]["$t"].length > 0) {
+				imageurl = each["gsx$imageurl"]["$t"];      		
+			};
+
+	      	// var name = each["gsx$name"]["$t"];
+	      	// var playlistid = each["gsx$playlistid"]["$t"];
+	      	// var description = each["gsx$description"]["$t"];
+	      	// var imageurl = each["gsx$imageurl"]["$t"];
 
 
-	      	// -- categories has multiple entries, combine into array
+	      	// -- categories -- has multiple entries, combine into array
 	      	var categories = [];
 	      	for (var j = 0; j < MAX_CATEGORIES; j++) { 
-
 	      		var key = "gsx$categories" + j;
 	      		
 	      		// -- check -- if key exists and value has length
@@ -77,7 +115,8 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 	      	}
 
 
-			// Create Parse objects 
+
+			// SECOND - Create Parse objects 
 			var Playlist = Parse.Object.extend("Playlist");
 			var playlist = new Playlist();
 			playlist.set("name", name);
@@ -89,7 +128,7 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 
 
 
-			// Add to caching array
+			// THIRD - Add to caching array
 			playlistsToSave.push(playlist);
 	      }
 
@@ -122,6 +161,7 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 
 
 });
+
 
 
 /**
