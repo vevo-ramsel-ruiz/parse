@@ -162,6 +162,50 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 
 });
 
+/**
+ * Routes
+ */
+
+Parse.Cloud.define("getPlaylists", function(request, response) {
+    var Playlist = Parse.Object.extend("Playlist");
+    var query = new Parse.Query(Playlist);
+    query.find({
+        success: function(results) {
+            return response.success(results);
+        },
+        error: function(error) {
+            alert("Error: " + error.code + " " + error.message);
+        }
+    });
+});
+
+Parse.Cloud.define("getCharts", function(request, response) {
+    var Chart = Parse.Object.extend("Chart");
+    var query = new Parse.Query(Chart);
+    query.find({
+        success: function(results) {
+
+            // For future reference.
+            //var resultsJson = [];
+            //for (var i = 0; i < results.length; i++) {
+            //    var resultJson = (results[i].toJSON());
+            //    var chartVideos = results[i].get("chartVideos");
+            //    for (var j = 0; j < chartVideos.length; j++) {
+            //
+            //    }
+            //
+            //    resultsJson.push(resultJson);
+            //}
+            //return response.success(resultJson);
+
+            return response.success(results);
+
+        },
+        error: function(error) {
+            alert("Error: " + error.code + " " + error.message);
+        }
+    });
+});
 
 
 /**
