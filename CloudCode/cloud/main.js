@@ -167,13 +167,32 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
  */
 
 Parse.Cloud.define("getPlaylists", function(request, response) {
+
+	// Parse request
+	var territory = request.params.territory;
+	territory = territory.toLowerCase();
+
+	console.log("territory = " + territory);
+
+	// Query
     var Playlist = Parse.Object.extend("Playlist");
     var query = new Parse.Query(Playlist);
+    query.equalTo("territories", territory);
+
     query.find({
         success: function(results) {
+
+        		console.log("results");
+        		console.log(results);
+
+
             return response.success(results);
         },
         error: function(error) {
+
+        	console.log("error");
+    		console.log(error);
+
             alert("Error: " + error.code + " " + error.message);
         }
     });
