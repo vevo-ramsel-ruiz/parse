@@ -168,9 +168,15 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 
 Parse.Cloud.define("getPlaylists", function(request, response) {
 
+	// FIXME: Logic -- if territory is nil, then just return US playlists by default
+
 	// Parse request
-	var territory = request.params.territory;
-	territory = territory.toLowerCase();
+	var territory = "us"; // default
+	if (request.params.territory.length > 1) { 
+		territory = request.params.territory;
+		territory = territory.toLowerCase();
+	}
+
 
 
 	// Query
