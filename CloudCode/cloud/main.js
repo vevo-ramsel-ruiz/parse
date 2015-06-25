@@ -172,7 +172,6 @@ Parse.Cloud.define("getPlaylists", function(request, response) {
 	var territory = request.params.territory;
 	territory = territory.toLowerCase();
 
-	console.log("territory = " + territory);
 
 	// Query
     var Playlist = Parse.Object.extend("Playlist");
@@ -182,16 +181,16 @@ Parse.Cloud.define("getPlaylists", function(request, response) {
     query.find({
         success: function(results) {
 
-        		console.log("results");
-        		console.log(results);
+        	// Parse PFObjects to JSON
+        	var resultsJson = [];
+			for (var i = 0; i<results.length; i++) {
+  				var resultJson = (results[i].toJSON());
+  				resultsJson.push(resultJson);
+			}
 
-
-            return response.success(results);
+			return response.success(resultsJson); 
         },
         error: function(error) {
-
-        	console.log("error");
-    		console.log(error);
 
             alert("Error: " + error.code + " " + error.message);
         }
