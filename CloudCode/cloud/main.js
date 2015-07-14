@@ -4,6 +4,7 @@
  * Modules
  */
  var async = require("cloud/async.js");
+ var _ = require("cloud/lodash.js");
 
 
 
@@ -177,8 +178,6 @@ Parse.Cloud.define("getPlaylists", function(request, response) {
 		territory = territory.toLowerCase();
 	}
 
-
-
 	// Query
     var Playlist = Parse.Object.extend("Playlist");
     var query = new Parse.Query(Playlist);
@@ -193,6 +192,61 @@ Parse.Cloud.define("getPlaylists", function(request, response) {
   				var resultJson = (results[i].toJSON());
   				resultsJson.push(resultJson);
 			}
+
+			return response.success(resultsJson); 
+        },
+        error: function(error) {
+
+            alert("Error: " + error.code + " " + error.message);
+        }
+    });
+});
+
+Parse.Cloud.define("getPlaylists2", function(request, response) {
+	// Parse request
+	var territory = "us"; // default
+	if (request.params.territory.length > 1) { 
+		territory = request.params.territory;
+		territory = territory.toLowerCase();
+	}
+
+	// Query
+    var Playlist = Parse.Object.extend("Playlist");
+    var query = new Parse.Query(Playlist);
+    query.equalTo("territories", territory);
+
+    query.find({
+        success: function(results) {
+
+            var categoryObj = {};
+
+        	// Parse PFObjects to JSON
+        	var resultsJson = [];
+            _.map(results, function(item) {
+            
+  				var resultJson = (item.toJSON());
+
+                var categories = resultJson.categories;
+                _.map(categories, function(category) {
+                    var categoryName = category.toLowerCase();
+
+                    if (categoryObj[categoryName]) {
+                        var arr = categoryObj[categoryName];
+                        arr.push(resultJson);
+                        categoryObj[categoryName] = arr;
+                    } else {
+                        categoryObj[categoryName] = [resultJson];
+                    }
+                });
+
+            });
+
+            _.forEach(categoryObj, function(val, key) {
+                var obj = {};
+                obj.category = key;
+                obj.playlists = val;
+                resultsJson.push(obj);
+            });
 
 			return response.success(resultsJson); 
         },
