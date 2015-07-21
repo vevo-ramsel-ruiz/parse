@@ -285,6 +285,111 @@ Parse.Cloud.define("getCharts", function(request, response) {
     });
 });
 
+/**
+*
+*/
+Parse.Cloud.define("incrementFollowsCount", function(request, response) {
+
+	// Parse request
+	var UID;
+	if (request.params.UID.length > 1) { 
+		UID = request.params.UID;
+	}
+
+	var objectType;
+	if (request.params.objectType.length > 1) { 
+		objectType = request.params.objectType;
+	}
+
+
+	// Query
+    var FollowCounts = Parse.Object.extend("FollowCounts");
+    var query = new Parse.Query(FollowCounts);
+    query.equalTo("UID", UID);
+    query.equalTo("objectType", objectType);
+
+    query.first({
+        success: function(object) {
+        		 
+        	// Increment and save
+        	if (object) {
+        		object.increment("count");
+        		object.save();
+        	}
+        	// Create a new object
+        	else {
+
+				var FollowCounts = Parse.Object.extend("FollowCounts");
+				var followCountsObject = new FollowCounts();
+				followCountsObject.set("UID", UID);
+				followCountsObject.set("objectType", objectType);
+				followCountsObject.set("count", 1);
+				followCountsObject.save();
+        	}
+        	
+
+			return response.success(); 
+        },
+        error: function(error) {
+
+            console.log("Error: " + error.code + " " + error.message);
+            return response.error(error); 
+        }
+    });
+});
+
+/**
+*
+*/
+Parse.Cloud.define("decrementFollowsCount", function(request, response) {
+
+	// Parse request
+	var UID;
+	if (request.params.UID.length > 1) { 
+		UID = request.params.UID;
+	}
+
+	var objectType;
+	if (request.params.objectType.length > 1) { 
+		objectType = request.params.objectType;
+	}
+
+
+	// Query
+    var FollowCounts = Parse.Object.extend("FollowCounts");
+    var query = new Parse.Query(FollowCounts);
+    query.equalTo("UID", UID);
+    query.equalTo("objectType", objectType);
+
+    query.first({
+        success: function(object) {
+
+         	// Decrement and save
+			if (object) {				
+
+				// Make sure we don't decrement to negative
+				if (object.get("count") > 0) {
+					object.increment("count",-1);
+        			object.save();
+				};       
+        	}
+        	// Create a new object
+        	else {
+        		console.log("No object found! We shouldn't be trying to decrement a non-existing object");
+
+        	}
+        	
+
+			return response.success(); 
+        },
+        error: function(error) {
+
+            console.log("Error: " + error.code + " " + error.message);
+
+            return response.error(error); 
+        }
+    });
+});
 
 /**
 *
