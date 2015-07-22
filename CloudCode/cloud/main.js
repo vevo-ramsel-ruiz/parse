@@ -292,13 +292,39 @@ Parse.Cloud.define("incrementFollowsCount", function(request, response) {
 
 	// Parse request
 	var UID;
-	if (request.params.UID.length > 1) { 
+	if (request.params.UID && request.params.UID.length > 0) { 
 		UID = request.params.UID;
+	}
+	else {
+		response.error("Missing parameter - UID -- must provide a UID for the object to increment");
+		return;
 	}
 
 	var objectType;
-	if (request.params.objectType.length > 1) { 
+	if (request.params.objectType && request.params.objectType.length > 0) { 
 		objectType = request.params.objectType;
+	}
+	else {
+		response.error("Missing parameter - objectType -- must provide an objectType for the object to increment");
+		return;
+	}
+
+	var title;
+	if (request.params.title && request.params.title.length > 0) { 
+		title = request.params.title;
+	}
+	else {
+		response.error("Missing parameter - title -- must provide an title for the object to increment");
+		return;
+	}
+
+	var imageUrl;
+	if (request.params.imageUrl && request.params.imageUrl.length > 0) { 
+		imageUrl = request.params.imageUrl;
+	}
+	else {
+		response.error("Missing parameter - imageUrl -- must provide an imageUrl for the object to increment");
+		return;
 	}
 
 
@@ -323,6 +349,8 @@ Parse.Cloud.define("incrementFollowsCount", function(request, response) {
 				var followCountsObject = new FollowCounts();
 				followCountsObject.set("UID", UID);
 				followCountsObject.set("objectType", objectType);
+				followCountsObject.set("title", title);
+				followCountsObject.set("imageUrl", imageUrl);
 				followCountsObject.set("count", 1);
 				followCountsObject.save();
         	}
