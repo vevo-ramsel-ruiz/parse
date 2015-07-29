@@ -43,122 +43,152 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
   	// Array to store new objects
 	var playlistsToSave = [];
 
+	// Old existing Playlist
+	var playlistsToDelete = [];
+
+    //1. Make HTTPRequest to get JSON
+    //2. Make Parse object from JSON
+    //3. When all HTTPRequest async operations are complete and objects created, save objects
+    async.each(individualSheetIds,
+
+        function(sheetId, callback){
+
+            var url = urlForSheet(sheetId);
+
+            // Async cloud function - http request
+            Parse.Cloud.httpRequest({
+                url: url
+            }).then(function(httpResponse) {
+
+                // Parse response
+                var json = JSON.parse(httpResponse.buffer);
+
+                // Create playlist objects
+                for (var i = 0; i < json.feed.entry.length; i++) {
 
 
-	// 1. Make HTTPRequest to get JSON
-	// 2. Make Parse object from JSON
-	// 3. When all HTTPRequest async operations are complete and objects created, save objects
-	async.each(individualSheetIds,
+                    // FIRST - Parse JSON
+                    var each = json.feed.entry[i];
 
-	 function(sheetId, callback){
+                    // -- name
+                    var name = "";
+                    if (each["gsx$name"] &&
+                        each["gsx$name"]["$t"].length > 0) {
+                        name = each["gsx$name"]["$t"];
+                    };
 
-	 	var url = urlForSheet(sheetId);
+                    // -- playlistid
+                    var playlistid = "";
+                    if (each["gsx$playlistid"] &&
+                        each["gsx$playlistid"]["$t"].length > 0) {
+                        playlistid = each["gsx$playlistid"]["$t"];
+                    };
 
-	    // Async cloud function - http request
-		Parse.Cloud.httpRequest({
-		  url: url
-		}).then(function(httpResponse) {
-		  
-		  // Parse response
-		  var json = JSON.parse(httpResponse.buffer);
+                    // -- description
+                    var description = "";
+                    if (each["gsx$description"] &&
+                        each["gsx$description"]["$t"].length > 0) {
+                        description = each["gsx$description"]["$t"];
+                    };
 
-		  // Create playlist objects
-		  for (var i = 0; i < json.feed.entry.length; i++) {
+                    // -- imageurl
+                    var imageurl = "";
+                    if (each["gsx$imageurl"] &&
+                        each["gsx$imageurl"]["$t"].length > 0) {
+                        imageurl = each["gsx$imageurl"]["$t"];
+                    };
 
-
-		  	// FIRST - Parse JSON
-		  	var each = json.feed.entry[i];
-	    
-	    	// -- name
-	    	var name = "";
-    		if (each["gsx$name"] &&
-      			each["gsx$name"]["$t"].length > 0) {
-				name = each["gsx$name"]["$t"];      		
-			};
-
-			// -- playlistid
-	    	var playlistid = "";
-    		if (each["gsx$playlistid"] &&
-      			each["gsx$playlistid"]["$t"].length > 0) {
-				playlistid = each["gsx$playlistid"]["$t"];      		
-			};
-
-			// -- description
-	    	var description = "";
-    		if (each["gsx$description"] &&
-      			each["gsx$description"]["$t"].length > 0) {
-				description = each["gsx$description"]["$t"];      		
-			};
-
-			// -- imageurl
-	    	var imageurl = "";
-    		if (each["gsx$imageurl"] &&
-      			each["gsx$imageurl"]["$t"].length > 0) {
-				imageurl = each["gsx$imageurl"]["$t"];      		
-			};
-
-	      	// var name = each["gsx$name"]["$t"];
-	      	// var playlistid = each["gsx$playlistid"]["$t"];
-	      	// var description = each["gsx$description"]["$t"];
-	      	// var imageurl = each["gsx$imageurl"]["$t"];
+                    // var name = each["gsx$name"]["$t"];
+                    // var playlistid = each["gsx$playlistid"]["$t"];
+                    // var description = each["gsx$description"]["$t"];
+                    // var imageurl = each["gsx$imageurl"]["$t"];
 
 
-	      	// -- categories -- has multiple entries, combine into array
-	      	var categories = [];
-	      	for (var j = 0; j < MAX_CATEGORIES; j++) { 
-	      		var key = "gsx$categories" + j;
-	      		
-	      		// -- check -- if key exists and value has length
-	      		if (each[key] &&
-	      			each[key]["$t"].length > 0) {
-	      			categories.push(each[key]["$t"]);
-	      		};
-	      	}
+                    // -- categories -- has multiple entries, combine into array
+                    var categories = [];
+                    for (var j = 0; j < MAX_CATEGORIES; j++) {
+                        var key = "gsx$categories" + j;
 
-
-
-			// SECOND - Create Parse objects 
-			var Playlist = Parse.Object.extend("Playlist");
-			var playlist = new Playlist();
-			playlist.set("name", name);
-			playlist.set("playlistId", playlistid);
-			playlist.set("description", description);
-			playlist.set("imageUrl", imageurl);
-			playlist.add("territories", getKey(individualSheetIds, sheetId)); // Get the key from the sheetId
-			playlist.set("categories", categories);
+                        // -- check -- if key exists and value has length
+                        if (each[key] &&
+                            each[key]["$t"].length > 0) {
+                            categories.push(each[key]["$t"]);
+                        };
+                    }
 
 
 
-			// THIRD - Add to caching array
-			playlistsToSave.push(playlist);
-	      }
+                    // SECOND - Create Parse objects
+                    var Playlist = Parse.Object.extend("Playlist");
+                    var playlist = new Playlist();
+                    playlist.set("name", name);
+                    playlist.set("playlistId", playlistid);
+                    playlist.set("description", description);
+                    playlist.set("imageUrl", imageurl);
+                    playlist.add("territories", getKey(individualSheetIds, sheetId)); // Get the key from the sheetId
+                    playlist.set("categories", categories);
+                    playlist.set("active", true);
 
-	      // Callback for 'each'
-	      callback();
+
+                    // THIRD - Add to caching array
+                    playlistsToSave.push(playlist);
+                }
+
+                // Callback for 'each'
+                callback();
 
 
-		},function(httpResponse) {
-		  // error
-		  console.error('Request failed with response code ' + httpResponse.status);
+            },function(httpResponse) {
+                // error
+                console.error('Request failed with response code ' + httpResponse.status);
 
-	      // status.error("Scheduled messages error: " + error);
-  	      status.error("Scheduled messages error");
-		});
-	  },
+                // status.error("Scheduled messages error: " + error);
+                status.error("Scheduled messages error");
+            });
+        },
 
-	  function(err){
-	   
-	   	// Async parse operations - Save objects
-		Parse.Object.saveAll(playlistsToSave, {
-	    success: function(saveList) {
-	        status.success("Objects created successfully.");
-	    },
-	    error: function(error) {
-	        status.error("Unable to save objects.");
-	    }
-	  	});
-	  }
-	);
+        function(err){
+            if (err) {
+                return;
+            }
+
+            // Query
+            var Playlist = Parse.Object.extend("Playlist");
+            var query = new Parse.Query(Playlist);
+            query.equalTo("active", true);
+
+            query.find({
+                success: function(results) {
+                    _.map(results, function(item) {
+                        playlistsToDelete.push(item);
+                        item.destroy();
+                    });
+
+                    // Async parse operations - Save objects
+                    Parse.Object.saveAll(playlistsToSave, {
+                        success: function(saveList) {
+                            status.success("Objects created successfully.");
+
+                            _.map(playlistsToDelete, function(playlist) {
+                                playlist.destroy();
+                            });
+                        },
+                        error: function(error) {
+                            status.error("Unable to save objects.");
+                        }
+                    });
+                },
+                error: function(error) {
+
+                    alert("Error: " + error.code + " " + error.message);
+                }
+            });
+
+        }
+    );
+
+
+
 
 
 });
@@ -167,7 +197,7 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
  * Routes
  */
 
-Parse.Cloud.define("getPlaylists", function(request, response) {
+Parse.Cloud.define("getPlaylists2", function(request, response) {
 
 	// FIXME: Logic -- if territory is nil, then just return US playlists by default
 
@@ -202,7 +232,7 @@ Parse.Cloud.define("getPlaylists", function(request, response) {
     });
 });
 
-Parse.Cloud.define("getPlaylists2", function(request, response) {
+Parse.Cloud.define("getPlaylists", function(request, response) {
 	// Parse request
 	var territory = "us"; // default
 	if (request.params.territory.length > 1) { 
@@ -214,6 +244,7 @@ Parse.Cloud.define("getPlaylists2", function(request, response) {
     var Playlist = Parse.Object.extend("Playlist");
     var query = new Parse.Query(Playlist);
     query.equalTo("territories", territory);
+    query.equalTo("active", true);
 
     query.find({
         success: function(results) {
@@ -227,8 +258,9 @@ Parse.Cloud.define("getPlaylists2", function(request, response) {
   				var resultJson = (item.toJSON());
 
                 var categories = resultJson.categories;
+
                 _.map(categories, function(category) {
-                    var categoryName = category.toLowerCase();
+                    var categoryName = category;
 
                     if (categoryObj[categoryName]) {
                         var arr = categoryObj[categoryName];
@@ -248,7 +280,38 @@ Parse.Cloud.define("getPlaylists2", function(request, response) {
                 resultsJson.push(obj);
             });
 
-			return response.success(resultsJson); 
+			categoryOrderArray = [
+				"Pop",
+				"Hip-Hop",
+				"Festivals",
+                "Country",
+                "Indie",
+                "Workout",
+                "Best Of",
+                "Party",
+                "Performances",
+                "Reggaeton",
+                "Rock",
+                "Dance",
+                "Moods",
+                "R&B",
+                "Rock",
+                "EDM",
+                "Latin"
+			];
+
+			resultsArray = [];
+
+			_.map(categoryOrderArray, function(category) {
+				_.forEach(resultsJson, function(obj) {
+					if (category === obj.category) {
+						resultsArray.push(obj);
+						return false;
+					}
+                });
+			});
+
+			return response.success(resultsArray);
         },
         error: function(error) {
 
@@ -418,6 +481,7 @@ Parse.Cloud.define("decrementFollowsCount", function(request, response) {
         }
     });
 });
+
 
 /**
 *
