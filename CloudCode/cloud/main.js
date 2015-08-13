@@ -63,6 +63,8 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
                 // Parse response
                 var json = JSON.parse(httpResponse.buffer);
 
+                var is_invalid = false;
+
                 // Create playlist objects
                 for (var i = 0; i < json.feed.entry.length; i++) {
 
@@ -116,7 +118,10 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
                         };
                     }
 
-
+                    if (!name || !playlistid || categories.length == 0) {
+                        is_invalid = true;
+                        break;
+                    }
 
                     // SECOND - Create Parse objects
                     var Playlist = Parse.Object.extend("Playlist");
@@ -135,8 +140,9 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
                 }
 
                 // Callback for 'each'
-                callback();
-
+                if (!is_invalid) {
+                    callback();
+                }
 
             },function(httpResponse) {
                 // error
