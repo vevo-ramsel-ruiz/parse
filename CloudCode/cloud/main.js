@@ -199,6 +199,32 @@ Parse.Cloud.job("importPlaylists", function(request, status) {
 
 });
 
+
+Parse.Cloud.define("run_importPlaylists", function(request, response) {
+
+  Parse.Cloud.httpRequest({
+    url: "https://api.parse.com/1/jobs/importPlaylists",
+    method: "POST",
+    headers: {
+        'Content-Type': 'application/json',
+        'X-Parse-Application-Id': 'TcAqEJcxxNuSfIrALsnYpY8GEBaJHVOC34VIEUB8',
+        'X-Parse-Master-Key': 'PfABiwOsI0vN5jby9CL7jDDntA2sbK9Oa2EvS82N',
+    },
+    body: {
+        "request": request,
+        "response": response
+    },
+    success: function(httpResponse) {
+        response.success(httpResponse.text);
+    },
+    error: function(httpResponse) {
+        console.log("httpResponse");
+        console.log(httpResponse);
+        response.error('Request failed with response code ' + httpResponse.status);
+    }
+});
+});
+
 /**
  * Routes
  */
@@ -209,7 +235,11 @@ Parse.Cloud.define("getPlaylists2", function(request, response) {
 
 	// Parse request
 	var territory = "us"; // default
-	if (request.params.territory.length > 1) { 
+	if ((request.params.territory.length > 1) &&
+        (request.params.territory in individualSheetIds)) { // if passed a territory && it's in the individualSheetIds array
+
+        console.log("territory = " + request.params.territory);
+
 		territory = request.params.territory;
 		territory = territory.toLowerCase();
 	}
@@ -241,10 +271,13 @@ Parse.Cloud.define("getPlaylists2", function(request, response) {
 Parse.Cloud.define("getPlaylists", function(request, response) {
 	// Parse request
 	var territory = "us"; // default
-	if (request.params.territory.length > 1) { 
-		territory = request.params.territory;
-		territory = territory.toLowerCase();
-	}
+    if ((request.params.territory.length > 1) &&
+        (request.params.territory in individualSheetIds)) { // if passed a territory && it's in the individualSheetIds array
+
+        console.log("territory = " + request.params.territory);
+        territory = request.params.territory;
+        territory = territory.toLowerCase();
+    }
 
 	// Query
     var Playlist = Parse.Object.extend("Playlist");
